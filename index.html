@@ -127,13 +127,14 @@ let timerVal = 0;
 let timerInterval = null;
 let longPressTimer = null;
 let pressingCell = null;
+let longPressFired = false;
 
 const boardEl = document.getElementById('board');
 const mineCountEl = document.getElementById('mine-count');
 const timerEl = document.getElementById('timer');
 const faceBtn = document.getElementById('face-btn');
 
-boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+boardEl.style.gridTemplateColumns = 'repeat(' + COLS + ', 30px)';
 
 function init() {
   board = [];
@@ -145,7 +146,8 @@ function init() {
   clearInterval(timerInterval);
   timerInterval = null;
   cancelLongPress();
-  faceBtn.textContent = '';
+  longPressFired = false;
+  faceBtn.textContent = '\u263A';
   updateMineCount();
   timerEl.textContent = '000';
 
@@ -214,6 +216,11 @@ function renderBoard() {
       // 右键：插旗（电脑端）
       cell.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        // 长按已经处理过，跳过这次，避免重复切换
+        if (longPressFired) {
+          longPressFired = false;
+          return;
+        }
         handleRightClick(r, c);
       });
 
@@ -236,10 +243,12 @@ function renderBoard() {
 
 function startLongPress(r, c, el) {
   cancelLongPress();
+  longPressFired = false;
   pressingCell = el;
   el.classList.add('pressing');
   longPressTimer = setTimeout(() => {
     handleRightClick(r, c);
+    longPressFired = true;
     if (navigator.vibrate) navigator.vibrate(30);
     longPressTimer = null;
   }, LONG_PRESS_MS);
@@ -258,6 +267,8 @@ function cancelLongPress() {
 
 function handleClick(r, c) {
   if (gameOver) return;
+  // 刚长按过，忽略这次点击，避免重复
+  if (longPressFired) return;
   const cell = board[r][c];
   if (cell.flagged || cell.revealed) return;
 
@@ -284,7 +295,7 @@ function handleRightClick(r, c) {
   if (cell.revealed) return;
 
   cell.flagged = !cell.flagged;
-  cell.el.textContent = cell.flagged ? '🚩' : '';
+  cell.el.textContent = cell.flagged ? '\u{1F6A9}' : '';
   flags += cell.flagged ? 1 : -1;
   updateMineCount();
 }
@@ -309,7 +320,7 @@ function revealAllMines() {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (board[r][c].mine && !board[r][c].flagged) {
-        board[r][c].el.textContent = '💣';
+        board[r][c].el.textContent = '\u{1F4A3}';
         board[r][c].el.classList.add('revealed');
       }
     }
@@ -325,7 +336,7 @@ function checkWin() {
 function endGame(win) {
   gameOver = true;
   clearInterval(timerInterval);
-  faceBtn.textContent = win ? '😎' : '😵';
+  faceBtn.textContent = win ? '\u{1F60E}' : '\u{1F480}';
 }
 
 function startTimer() {
