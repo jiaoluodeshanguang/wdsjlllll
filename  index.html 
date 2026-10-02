@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测测你的78长度</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      font-family: "Microsoft YaHei", sans-serif;
+      color: #fff;
+    }
+
+    .container {
+      text-align: center;
+      padding: 30px;
+      max-width: 420px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: #e94560;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+      color: #a8b2d1;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e94560;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #ff6b81;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 12px 40px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #e94560;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background: #ff6b81;
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    #result {
+      margin-top: 24px;
+      font-size: 20px;
+      line-height: 1.8;
+      min-height: 80px;
+    }
+
+    #result .length {
+      font-size: 36px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    #result .comment {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #a8b2d1;
+    }
+
+    #result .egg {
+      font-size: 28px;
+      color: #ff6b81;
+      animation: shake 0.5s infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1> 测测你的78长度</h1>
+
+    <div class="input-group">
+      <label for="name">人物</label>
+      <input type="text" id="name" placeholder="输入人物名字">
+    </div>
+
+    <div class="input-group">
+      <label for="length">长度 (1~100cm)</label>
+      <input type="text" id="length" placeholder="输入 1~100 的数字">
+    </div>
+
+    <button onclick="measure()">开始测量</button>
+
+    <div id="result"></div>
+  </div>
+
+  <div class="footer">如果是1~50cm：一般长度，还需努力 | 50~90cm：很长，令人羡慕 | 90~100cm：非人类，已经登神</div>
+
+  <script>
+    function measure() {
+      const name = document.getElementById('name').value.trim();
+      const lengthInput = document.getElementById('length').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!name) {
+        resultDiv.innerHTML = '<span style="color:#e94560;">请输入人物名字！</span>';
+        return;
+      }
+
+      // 彩蛋：如果人物是 sxd
+      if (name.toLowerCase() === 'sxd') {
+        resultDiv.innerHTML = `
+          <div class="egg"> 检测到特殊人物：sxd！</div>
+          <div class="length">9178 cm</div>
+          <div class="comment"> 已突破天际，登神失败，直接成神！</div>
+        `;
+        return;
+      }
+
+      // 普通人物：验证输入
+      const length = parseInt(lengthInput);
+      if (isNaN(length) || length < 1 || length > 100) {
+        resultDiv.innerHTML = '<span style="color:#e94560;">请输入 1~100 之间的数字！</span>';
+        return;
+      }
+
+      // 判断等级
+      let comment = '';
+      if (length <= 50) {
+        comment = '一般长度，还需努力 ';
+      } else if (length <= 90) {
+        comment = '很长，令人羡慕 ';
+      } else {
+        comment = '非人类，已经登神 ';
+      }
+
+      resultDiv.innerHTML = `
+        <div>${name} 的78长度为：</div>
+        <div class="length">${length} cm</div>
+        <div class="comment">${comment}</div>
+      `;
+    }
+  </script>
+</body>
+</html>
