@@ -1,18 +1,201 @@
-// 长按插旗
-let longPressTimer = null;
-const LONG_PRESS_MS = 400; // 长按 400ms 触发插旗
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>扫雷</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #c0c0c0;
+    font-family: "Microsoft YaHei", sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .game {
+    background: #c0c0c0;
+    border: 3px solid;
+    border-color: #fff #808080 #808080 #fff;
+    padding: 6px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+  }
+  .counter {
+    background: #000;
+    color: #f00;
+    font-family: "Courier New", monospace;
+    font-size: 28px;
+    font-weight: bold;
+    padding: 2px 6px;
+    min-width: 56px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  .face-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+    cursor: pointer;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .face-btn:active {
+    border-color: #808080 #fff #fff #808080;
+  }
+  .board {
+    display: grid;
+    border: 3px solid;
+    border-color: #808080 #fff #fff #808080;
+  }
+  .cell {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+  }
+  .cell.revealed {
+    border: 1px solid #808080;
+    background: #c0c0c0;
+    cursor: default;
+  }
+  .cell.mine-hit {
+    background: #f00;
+    border: 1px solid #808080;
+  }
+  /* 长按时的视觉反馈 */
+  .cell.pressing {
+    background: #a8a8a8;
+    border-color: #808080 #fff #fff #808080;
+  }
+  .n1 { color: #0000ff; }
+  .n2 { color: #008000; }
+  .n3 { color: #ff0000; }
+  .n4 { color: #000080; }
+  .n5 { color: #800000; }
+  .n6 { color: #008080; }
+  .n7 { color: #000000; }
+  .n8 { color: #808080; }
+</style>
+</head>
+<body>
 
-function startLongPress(r, c) {
-  longPressTimer = setTimeout(() => {
-    handleRightClick(r, c);
-    longPressTimer = null;
-  }, LONG_PRESS_MS);
+<div class="game">
+  <div class="header">
+    <div class="counter" id="mine-count">010</div>
+    <button class="face-btn" id="face-btn"></button>
+    <div class="counter" id="timer">000</div>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<script>
+const ROWS = 9;
+const COLS = 9;
+const MINES = 10;
+const LONG_PRESS_MS = 400;
+
+let board = [];
+let gameOver = false;
+let firstClick = true;
+let flags = 0;
+let revealed = 0;
+let timerVal = 0;
+let timerInterval = null;
+let longPressTimer = null;
+let pressingCell = null;
+
+const boardEl = document.getElementById('board');
+const mineCountEl = document.getElementById('mine-count');
+const timerEl = document.getElementById('timer');
+const faceBtn = document.getElementById('face-btn');
+
+boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+
+function init() {
+  board = [];
+  gameOver = false;
+  firstClick = true;
+  flags = 0;
+  revealed = 0;
+  timerVal = 0;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  cancelLongPress();
+  faceBtn.textContent = '';
+  updateMineCount();
+  timerEl.textContent = '000';
+
+  for (let r = 0; r < ROWS; r++) {
+    board[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      board[r][c] = {
+        mine: false,
+        revealed: false,
+        flagged: false,
+        count: 0,
+        el: null
+      };
+    }
+  }
+  renderBoard();
 }
 
-function cancelLongPress() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
+function placeMines(safeR, safeC) {
+  let placed = 0;
+  while (placed < MINES) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
+    if (!board[r][c].mine) {
+      board[r][c].mine = true;
+      placed++;
+    }
+  }
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c].mine) continue;
+      let cnt = 0;
+      forEachNeighbor(r, c, (nr, nc) => {
+        if (board[nr][nc].mine) cnt++;
+      });
+      board[r][c].count = cnt;
+    }
+  }
+}
+
+function forEachNeighbor(r, c, fn) {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+        fn(nr, nc);
+      }
+    }
   }
 }
 
@@ -36,17 +219,130 @@ function renderBoard() {
 
       // 触屏长按：插旗（手机端）
       cell.addEventListener('touchstart', (e) => {
-        // 防止滚动干扰
         if (e.touches.length === 1) {
-          startLongPress(r, c);
+          startLongPress(r, c, cell);
         }
       }, { passive: true });
 
       cell.addEventListener('touchend', cancelLongPress);
       cell.addEventListener('touchmove', cancelLongPress);
+      cell.addEventListener('touchcancel', cancelLongPress);
 
       board[r][c].el = cell;
       boardEl.appendChild(cell);
     }
   }
 }
+
+function startLongPress(r, c, el) {
+  cancelLongPress();
+  pressingCell = el;
+  el.classList.add('pressing');
+  longPressTimer = setTimeout(() => {
+    handleRightClick(r, c);
+    if (navigator.vibrate) navigator.vibrate(30);
+    longPressTimer = null;
+  }, LONG_PRESS_MS);
+}
+
+function cancelLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  if (pressingCell) {
+    pressingCell.classList.remove('pressing');
+    pressingCell = null;
+  }
+}
+
+function handleClick(r, c) {
+  if (gameOver) return;
+  const cell = board[r][c];
+  if (cell.flagged || cell.revealed) return;
+
+  if (firstClick) {
+    firstClick = false;
+    placeMines(r, c);
+    startTimer();
+  }
+
+  if (cell.mine) {
+    cell.el.classList.add('mine-hit');
+    revealAllMines();
+    endGame(false);
+    return;
+  }
+
+  reveal(r, c);
+  checkWin();
+}
+
+function handleRightClick(r, c) {
+  if (gameOver) return;
+  const cell = board[r][c];
+  if (cell.revealed) return;
+
+  cell.flagged = !cell.flagged;
+  cell.el.textContent = cell.flagged ? '🚩' : '';
+  flags += cell.flagged ? 1 : -1;
+  updateMineCount();
+}
+
+function reveal(r, c) {
+  const cell = board[r][c];
+  if (cell.revealed || cell.flagged || cell.mine) return;
+
+  cell.revealed = true;
+  revealed++;
+  cell.el.classList.add('revealed');
+
+  if (cell.count > 0) {
+    cell.el.textContent = cell.count;
+    cell.el.classList.add('n' + cell.count);
+  } else {
+    forEachNeighbor(r, c, (nr, nc) => reveal(nr, nc));
+  }
+}
+
+function revealAllMines() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c].mine && !board[r][c].flagged) {
+        board[r][c].el.textContent = '💣';
+        board[r][c].el.classList.add('revealed');
+      }
+    }
+  }
+}
+
+function checkWin() {
+  if (revealed === ROWS * COLS - MINES) {
+    endGame(true);
+  }
+}
+
+function endGame(win) {
+  gameOver = true;
+  clearInterval(timerInterval);
+  faceBtn.textContent = win ? '😎' : '😵';
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timerVal++;
+    timerEl.textContent = String(timerVal).padStart(3, '0');
+    if (timerVal >= 999) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function updateMineCount() {
+  const remaining = MINES - flags;
+  mineCountEl.textContent = String(Math.max(remaining, 0)).padStart(3, '0');
+}
+
+faceBtn.addEventListener('click', init);
+init();
+</script>
+</body>
+</html>
