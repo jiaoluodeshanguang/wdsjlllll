@@ -111,6 +111,90 @@
   .n6 { color: #008080; }
   .n7 { color: #000000; }
   .n8 { color: #808080; }
+
+  .dialog-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  .dialog-overlay.show {
+    display: flex;
+  }
+  .dialog {
+    background: #c0c0c0;
+    border: 3px solid;
+    border-color: #fff #808080 #808080 #fff;
+    padding: 3px;
+    min-width: 280px;
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
+    animation: dialogIn 0.2s ease-out;
+  }
+  @keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 3px 6px;
+    margin-bottom: 12px;
+  }
+  .dialog-close {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    line-height: 16px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .dialog-close:active {
+    border-color: #808080 #fff #fff #808080;
+  }
+  .dialog-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px 16px;
+  }
+  .dialog-text {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .dialog-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+  .dialog-btn {
+    min-width: 80px;
+    padding: 4px 16px;
+    font-size: 13px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    cursor: pointer;
+  }
+  .dialog-btn:active {
+    border-color: #808080 #fff #fff #808080;
+  }
+  .dialog-btn:focus {
+    outline: 1px dotted #000;
+    outline-offset: -3px;
+  }
 </style>
 </head>
 <body>
@@ -122,6 +206,22 @@
     <div class="counter" id="timer">000</div>
   </div>
   <div class="board" id="board"></div>
+</div>
+
+<div class="dialog-overlay" id="dialog-overlay">
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">扫雷</span>
+      <button class="dialog-close" id="dialog-close">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <div class="dialog-text" id="dialog-text"></div>
+    </div>
+    <div class="dialog-footer">
+      <button class="dialog-btn" id="dialog-restart">重新开始</button>
+      <button class="dialog-btn" id="dialog-ok">确定</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -147,6 +247,12 @@ const mineCountEl = document.getElementById('mine-count');
 const timerEl = document.getElementById('timer');
 const faceBtn = document.getElementById('face-btn');
 
+const overlay = document.getElementById('dialog-overlay');
+const dialogText = document.getElementById('dialog-text');
+const dialogRestart = document.getElementById('dialog-restart');
+const dialogOk = document.getElementById('dialog-ok');
+const dialogClose = document.getElementById('dialog-close');
+
 boardEl.style.gridTemplateColumns = 'repeat(' + COLS + ', 30px)';
 
 function init() {
@@ -160,8 +266,9 @@ function init() {
   timerInterval = null;
   cancelLongPress();
   longPressFired = false;
-  explodeTimers.forEach(t => clearTimeout(t));
+  explodeTimers.forEach(function(t) { clearTimeout(t); });
   explodeTimers = [];
+  hideDialog();
   faceBtn.textContent = '\u263A';
   updateMineCount();
   timerEl.textContent = '000';
@@ -196,7 +303,7 @@ function placeMines(safeR, safeC) {
     for (let c = 0; c < COLS; c++) {
       if (board[r][c].mine) continue;
       let cnt = 0;
-      forEachNeighbor(r, c, (nr, nc) => {
+      forEachNeighbor(r, c, function(nr, nc) {
         if (board[nr][nc].mine) cnt++;
       });
       board[r][c].count = cnt;
@@ -225,16 +332,16 @@ function renderBoard() {
       cell.dataset.r = r;
       cell.dataset.c = c;
 
-      cell.addEventListener('click', () => handleClick(r, c));
-      cell.addEventListener('mousedown', (e) => {
+      cell.addEventListener('click', function() { handleClick(r, c); });
+      cell.addEventListener('mousedown', function(e) {
         if (e.button === 0 && !gameOver && !board[r][c].revealed && !board[r][c].flagged) {
           cell.classList.add('pressing');
         }
       });
-      cell.addEventListener('mouseup', () => cell.classList.remove('pressing'));
-      cell.addEventListener('mouseleave', () => cell.classList.remove('pressing'));
+      cell.addEventListener('mouseup', function() { cell.classList.remove('pressing'); });
+      cell.addEventListener('mouseleave', function() { cell.classList.remove('pressing'); });
 
-      cell.addEventListener('contextmenu', (e) => {
+      cell.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         if (longPressFired) {
           longPressFired = false;
@@ -243,7 +350,7 @@ function renderBoard() {
         handleRightClick(r, c);
       });
 
-      cell.addEventListener('touchstart', (e) => {
+      cell.addEventListener('touchstart', function(e) {
         if (e.touches.length === 1) {
           startLongPress(r, c, cell);
         }
@@ -264,7 +371,7 @@ function startLongPress(r, c, el) {
   longPressFired = false;
   pressingCell = el;
   el.classList.add('pressing');
-  longPressTimer = setTimeout(() => {
+  longPressTimer = setTimeout(function() {
     handleRightClick(r, c);
     longPressFired = true;
     if (navigator.vibrate) navigator.vibrate(30);
@@ -296,9 +403,38 @@ function handleClick(r, c) {
   }
 
   if (cell.mine) {
+    // 1. 点到的雷立刻爆炸
     cell.el.classList.add('mine-hit');
-    revealAllMines(r, c);
-    endGame(false);
+    cell.el.textContent = '\u{1F4A5}';
+    cell.el.classList.add('revealed');
+
+    // 2. 收集其他所有雷，立刻显示💣
+    const restMines = [];
+    for (let rr = 0; rr < ROWS; rr++) {
+      for (let cc = 0; cc < COLS; cc++) {
+        if (board[rr][cc].mine && !board[rr][cc].flagged && !(rr === r && cc === c)) {
+          restMines.push(board[rr][cc]);
+          board[rr][cc].el.textContent = '\u{1F4A3}';
+          board[rr][cc].el.classList.add('revealed');
+        }
+      }
+    }
+
+    // 3. 然后依次变成💥
+    restMines.forEach(function(mineCell, index) {
+      const t = setTimeout(function() {
+        mineCell.el.textContent = '\u{1F4A5}';
+        mineCell.el.classList.add('mine-hit');
+      }, (index + 1) * 80);
+      explodeTimers.push(t);
+    });
+
+    // 全部炸完后弹出游戏结束
+    const endDelay = restMines.length * 80 + 300;
+    const endTimer = setTimeout(function() {
+      endGame(false);
+    }, endDelay);
+    explodeTimers.push(endTimer);
     return;
   }
 
@@ -329,38 +465,8 @@ function reveal(r, c) {
     cell.el.textContent = cell.count;
     cell.el.classList.add('n' + cell.count);
   } else {
-    forEachNeighbor(r, c, (nr, nc) => reveal(nr, nc));
+    forEachNeighbor(r, c, function(nr, nc) { reveal(nr, nc); });
   }
-}
-
-function revealAllMines(hitR, hitC) {
-  // 第一步：立刻炸掉踩中的那颗
-  board[hitR][hitC].el.textContent = '\u{1F4A3}';
-  board[hitR][hitC].el.classList.add('revealed');
-
-  // 第二步：收集剩余所有雷
-  const restMines = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (board[r][c].mine && !board[r][c].flagged && !(r === hitR && c === hitC)) {
-        restMines.push(board[r][c]);
-      }
-    }
-  }
-
-  // 第三步：等 0.3 秒后，剩余雷依次炸开，每颗间隔 100ms
-  const t = setTimeout(() => {
-    let delay = 0;
-    restMines.forEach(cell => {
-      const timer = setTimeout(() => {
-        cell.el.textContent = '\u{1F4A3}';
-        cell.el.classList.add('revealed');
-      }, delay);
-      explodeTimers.push(timer);
-      delay += 100; // 改为 100ms 间隔
-    });
-  }, 300);
-  explodeTimers.push(t);
 }
 
 function checkWin() {
@@ -373,10 +479,11 @@ function endGame(win) {
   gameOver = true;
   clearInterval(timerInterval);
   faceBtn.textContent = win ? '\u{1F60E}' : '\u{1F480}';
+  showDialog('游戏结束！');
 }
 
 function startTimer() {
-  timerInterval = setInterval(() => {
+  timerInterval = setInterval(function() {
     timerVal++;
     timerEl.textContent = String(timerVal).padStart(3, '0');
     if (timerVal >= 999) clearInterval(timerInterval);
@@ -387,6 +494,26 @@ function updateMineCount() {
   const remaining = MINES - flags;
   mineCountEl.textContent = String(Math.max(remaining, 0)).padStart(3, '0');
 }
+
+function showDialog(message) {
+  dialogText.textContent = message;
+  overlay.classList.add('show');
+  dialogRestart.focus();
+}
+
+function hideDialog() {
+  overlay.classList.remove('show');
+}
+
+dialogOk.addEventListener('click', hideDialog);
+dialogClose.addEventListener('click', hideDialog);
+dialogRestart.addEventListener('click', function() {
+  hideDialog();
+  init();
+});
+overlay.addEventListener('click', function(e) {
+  if (e.target === overlay) hideDialog();
+});
 
 faceBtn.addEventListener('click', init);
 init();
