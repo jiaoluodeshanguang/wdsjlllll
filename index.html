@@ -403,37 +403,40 @@ function handleClick(r, c) {
   }
 
   if (cell.mine) {
-    // 1. 点到的雷立刻爆炸
+    // 立刻显示爆炸
     cell.el.classList.add('mine-hit');
     cell.el.textContent = '\u{1F4A5}';
     cell.el.classList.add('revealed');
 
-    // 2. 收集其他所有雷，立刻显示💣
+    // 收集剩余未显示的雷
     const restMines = [];
     for (let rr = 0; rr < ROWS; rr++) {
       for (let cc = 0; cc < COLS; cc++) {
         if (board[rr][cc].mine && !board[rr][cc].flagged && !(rr === r && cc === c)) {
           restMines.push(board[rr][cc]);
-          board[rr][cc].el.textContent = '\u{1F4A3}';
-          board[rr][cc].el.classList.add('revealed');
         }
       }
     }
 
-    // 3. 然后依次变成💥
-    restMines.forEach(function(mineCell, index) {
+    // 先快速逐个显示雷，再触发爆炸动画
+    let delay = 80;
+    restMines.forEach(function(mineCell) {
       const t = setTimeout(function() {
-        mineCell.el.textContent = '\u{1F4A5}';
-        mineCell.el.classList.add('mine-hit');
-      }, (index + 1) * 80);
+        mineCell.el.textContent = '\u{1F4A3}';
+        mineCell.el.classList.add('revealed');
+        // 显示后再加爆炸动画
+        setTimeout(function() {
+          mineCell.el.classList.add('mine-hit');
+        }, 60);
+      }, delay);
       explodeTimers.push(t);
+      delay += 80;
     });
 
-    // 全部炸完后弹出游戏结束
-    const endDelay = restMines.length * 80 + 300;
+    // 全部显示+爆炸动画结束后，弹出游戏结束
     const endTimer = setTimeout(function() {
       endGame(false);
-    }, endDelay);
+    }, delay + 300);
     explodeTimers.push(endTimer);
     return;
   }
@@ -479,7 +482,11 @@ function endGame(win) {
   gameOver = true;
   clearInterval(timerInterval);
   faceBtn.textContent = win ? '\u{1F60E}' : '\u{1F480}';
-  showDialog('游戏结束！');
+  if (win) {
+    showDialog('游戏结束！');
+  } else {
+    showDialog('游戏结束！');
+  }
 }
 
 function startTimer() {
