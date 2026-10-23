@@ -1,0 +1,8 @@
+{
+  "name": "live-video-receiver",
+  "version": "1.0.0",
+  "description": "接收实时上传视频的 Web 服务",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.17.0" }
+}
