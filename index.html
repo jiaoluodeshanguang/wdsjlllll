@@ -2,521 +2,139 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>扫雷</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>屏幕直播 - 接收端</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: #c0c0c0;
-    font-family: "Microsoft YaHei", sans-serif;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .game {
-    background: #c0c0c0;
-    border: 3px solid;
-    border-color: #fff #808080 #808080 #fff;
-    padding: 6px;
-  }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #808080 #fff #fff #808080;
-    padding: 6px 8px;
-    margin-bottom: 6px;
-  }
-  .counter {
-    background: #000;
-    color: #f00;
-    font-family: "Courier New", monospace;
-    font-size: 28px;
-    font-weight: bold;
-    padding: 2px 6px;
-    min-width: 56px;
-    text-align: center;
-    letter-spacing: 2px;
-  }
-  .face-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 22px;
-    cursor: pointer;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .face-btn:active {
-    border-color: #808080 #fff #fff #808080;
-  }
-  .board {
-    display: grid;
-    border: 3px solid;
-    border-color: #808080 #fff #fff #808080;
-  }
-  .cell {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
-    transition: border-color 0.08s, background-color 0.1s, transform 0.08s;
-  }
-  .cell.pressing {
-    border-color: #808080 #fff #fff #808080 !important;
-    background-color: #b8b8b8;
-    transform: scale(0.95);
-  }
-  .cell.revealed {
-    border: 1px solid #808080;
-    background: #c0c0c0;
-    cursor: default;
-    animation: fadeIn 0.15s ease-out;
-  }
-  .cell.mine-hit {
-    background: #f00;
-    border: 1px solid #808080;
-    animation: explode 0.3s ease-out;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  @keyframes explode {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(1.35); background: #ff6666; }
-    100% { transform: scale(1); background: #f00; }
-  }
-  .n1 { color: #0000ff; }
-  .n2 { color: #008000; }
-  .n3 { color: #ff0000; }
-  .n4 { color: #000080; }
-  .n5 { color: #800000; }
-  .n6 { color: #008080; }
-  .n7 { color: #000000; }
-  .n8 { color: #808080; }
-
-  .dialog-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 100;
-    justify-content: center;
-    align-items: center;
-  }
-  .dialog-overlay.show {
-    display: flex;
-  }
-  .dialog {
-    background: #c0c0c0;
-    border: 3px solid;
-    border-color: #fff #808080 #808080 #fff;
-    padding: 3px;
-    min-width: 280px;
-    box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
-    animation: dialogIn 0.2s ease-out;
-  }
-  @keyframes dialogIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(90deg, #000080, #1084d0);
-    color: #fff;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 3px 6px;
-    margin-bottom: 12px;
-  }
-  .dialog-close {
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
-    line-height: 16px;
-    cursor: pointer;
-    padding: 0;
-  }
-  .dialog-close:active {
-    border-color: #808080 #fff #fff #808080;
-  }
-  .dialog-body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 16px 16px;
-  }
-  .dialog-text {
-    font-size: 16px;
-    font-weight: bold;
-    text-align: center;
-  }
-  .dialog-footer {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    padding-bottom: 12px;
-  }
-  .dialog-btn {
-    min-width: 80px;
-    padding: 4px 16px;
-    font-size: 13px;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
-    cursor: pointer;
-  }
-  .dialog-btn:active {
-    border-color: #808080 #fff #fff #808080;
-  }
-  .dialog-btn:focus {
-    outline: 1px dotted #000;
-    outline-offset: -3px;
-  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background:#0f1117; color:#e5e7eb; min-height:100vh; padding:20px; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  h1 { font-size:1.4rem; } h1 span { color:#667eea; }
+  #status { font-size:.85rem; padding:6px 12px; border-radius:20px; background:#374151; }
+  #status.on { background:#064e3b; color:#6ee7b7; }
+  #status.live { background:#7f1d1d; color:#fca5a5; animation:blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity:.6; } }
+  #videoArea { width:100%; background:#000; border-radius:12px; display:flex; align-items:center; justify-content:center; min-height:300px; overflow:hidden; }
+  #liveVideo { width:100%; max-height:70vh; display:none; }
+  #placeholder { color:#6b7280; padding:80px 20px; text-align:center; }
+  #placeholder .big { font-size:3rem; margin-bottom:10px; }
+  .muted { color:#6b7280; font-size:.85rem; margin-top:8px; }
 </style>
 </head>
 <body>
+<header>
+  <h1>📺 <span>屏幕直播 - 接收端</span></h1>
+  <div id="status" class="on">● 已连接服务器，等待直播</div>
+</header>
 
-<div class="game">
-  <div class="header">
-    <div class="counter" id="mine-count">010</div>
-    <button class="face-btn" id="face-btn"></button>
-    <div class="counter" id="timer">000</div>
+<div id="videoArea">
+  <div id="placeholder">
+    <div class="big">📡</div>
+    <div>暂无直播画面</div>
+    <div class="muted">请在另一台设备/页面打开 sender.html 开始屏幕共享</div>
   </div>
-  <div class="board" id="board"></div>
-</div>
-
-<div class="dialog-overlay" id="dialog-overlay">
-  <div class="dialog">
-    <div class="dialog-header">
-      <span class="dialog-title">扫雷</span>
-      <button class="dialog-close" id="dialog-close">&times;</button>
-    </div>
-    <div class="dialog-body">
-      <div class="dialog-text" id="dialog-text"></div>
-    </div>
-    <div class="dialog-footer">
-      <button class="dialog-btn" id="dialog-restart">重新开始</button>
-      <button class="dialog-btn" id="dialog-ok">确定</button>
-    </div>
-  </div>
+  <video id="liveVideo" autoplay muted playsinline></video>
 </div>
 
 <script>
-const ROWS = 9;
-const COLS = 9;
-const MINES = 10;
-const LONG_PRESS_MS = 400;
+const statusEl = document.getElementById('status');
+const placeholder = document.getElementById('placeholder');
+const video = document.getElementById('liveVideo');
 
-let board = [];
-let gameOver = false;
-let firstClick = true;
-let flags = 0;
-let revealed = 0;
-let timerVal = 0;
-let timerInterval = null;
-let longPressTimer = null;
-let pressingCell = null;
-let longPressFired = false;
-let explodeTimers = [];
-
-const boardEl = document.getElementById('board');
-const mineCountEl = document.getElementById('mine-count');
-const timerEl = document.getElementById('timer');
-const faceBtn = document.getElementById('face-btn');
-
-const overlay = document.getElementById('dialog-overlay');
-const dialogText = document.getElementById('dialog-text');
-const dialogRestart = document.getElementById('dialog-restart');
-const dialogOk = document.getElementById('dialog-ok');
-const dialogClose = document.getElementById('dialog-close');
-
-boardEl.style.gridTemplateColumns = 'repeat(' + COLS + ', 30px)';
-
-function init() {
-  board = [];
-  gameOver = false;
-  firstClick = true;
-  flags = 0;
-  revealed = 0;
-  timerVal = 0;
-  clearInterval(timerInterval);
-  timerInterval = null;
-  cancelLongPress();
-  longPressFired = false;
-  explodeTimers.forEach(function(t) { clearTimeout(t); });
-  explodeTimers = [];
-  hideDialog();
-  faceBtn.textContent = '\u263A';
-  updateMineCount();
-  timerEl.textContent = '000';
-
-  for (let r = 0; r < ROWS; r++) {
-    board[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      board[r][c] = {
-        mine: false,
-        revealed: false,
-        flagged: false,
-        count: 0,
-        el: null
-      };
-    }
-  }
-  renderBoard();
+function setStatus(cls, text) {
+  statusEl.className = cls;
+  statusEl.textContent = '● ' + text;
 }
 
-function placeMines(safeR, safeC) {
-  let placed = 0;
-  while (placed < MINES) {
-    const r = Math.floor(Math.random() * ROWS);
-    const c = Math.floor(Math.random() * COLS);
-    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
-    if (!board[r][c].mine) {
-      board[r][c].mine = true;
-      placed++;
-    }
-  }
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (board[r][c].mine) continue;
-      let cnt = 0;
-      forEachNeighbor(r, c, function(nr, nc) {
-        if (board[nr][nc].mine) cnt++;
-      });
-      board[r][c].count = cnt;
-    }
-  }
+let ws, mediaSource, sourceBuffer, mime, queue = [], started = false, retryTimer;
+
+function connect() {
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => {
+    setStatus('on', '已连接服务器，等待直播');
+    ws.send(JSON.stringify({ type: 'viewer' }));
+  };
+  ws.onclose = () => {
+    setStatus('on', '连接断开，2s 后重连');
+    started = false;
+    resetMSE();
+    retryTimer = setTimeout(connect, 2000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = onMessage;
 }
+connect();
 
-function forEachNeighbor(r, c, fn) {
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      if (dr === 0 && dc === 0) continue;
-      const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-        fn(nr, nc);
-      }
+function onMessage(e) {
+  if (typeof e.data === 'string') {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'mime') { mime = msg.mime; ws.send(JSON.stringify({ type: 'viewer-ready' })); }
+    else if (msg.type === 'stream-start') beginStream();
+    else if (msg.type === 'sender-online') { mime = msg.mime; ws.send(JSON.stringify({ type: 'viewer-ready' })); beginStream(); }
+    else if (msg.type === 'stream-end') {
+      setStatus('on', '直播已结束，等待下一场');
+      started = false;
+      resetMSE();
     }
-  }
-}
-
-function renderBoard() {
-  boardEl.innerHTML = '';
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.r = r;
-      cell.dataset.c = c;
-
-      cell.addEventListener('click', function() { handleClick(r, c); });
-      cell.addEventListener('mousedown', function(e) {
-        if (e.button === 0 && !gameOver && !board[r][c].revealed && !board[r][c].flagged) {
-          cell.classList.add('pressing');
-        }
-      });
-      cell.addEventListener('mouseup', function() { cell.classList.remove('pressing'); });
-      cell.addEventListener('mouseleave', function() { cell.classList.remove('pressing'); });
-
-      cell.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        if (longPressFired) {
-          longPressFired = false;
-          return;
-        }
-        handleRightClick(r, c);
-      });
-
-      cell.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 1) {
-          startLongPress(r, c, cell);
-        }
-      }, { passive: true });
-
-      cell.addEventListener('touchend', cancelLongPress);
-      cell.addEventListener('touchmove', cancelLongPress);
-      cell.addEventListener('touchcancel', cancelLongPress);
-
-      board[r][c].el = cell;
-      boardEl.appendChild(cell);
-    }
-  }
-}
-
-function startLongPress(r, c, el) {
-  cancelLongPress();
-  longPressFired = false;
-  pressingCell = el;
-  el.classList.add('pressing');
-  longPressTimer = setTimeout(function() {
-    handleRightClick(r, c);
-    longPressFired = true;
-    if (navigator.vibrate) navigator.vibrate(30);
-    longPressTimer = null;
-  }, LONG_PRESS_MS);
-}
-
-function cancelLongPress() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-  if (pressingCell) {
-    pressingCell.classList.remove('pressing');
-    pressingCell = null;
-  }
-}
-
-function handleClick(r, c) {
-  if (gameOver) return;
-  if (longPressFired) return;
-  const cell = board[r][c];
-  if (cell.flagged || cell.revealed) return;
-
-  if (firstClick) {
-    firstClick = false;
-    placeMines(r, c);
-    startTimer();
-  }
-
-  if (cell.mine) {
-    // 1. 点到的雷立刻爆炸
-    cell.el.classList.add('mine-hit');
-    cell.el.textContent = '\u{1F4A5}';
-    cell.el.classList.add('revealed');
-
-    // 2. 收集其他所有雷，立刻显示💣
-    const restMines = [];
-    for (let rr = 0; rr < ROWS; rr++) {
-      for (let cc = 0; cc < COLS; cc++) {
-        if (board[rr][cc].mine && !board[rr][cc].flagged && !(rr === r && cc === c)) {
-          restMines.push(board[rr][cc]);
-          board[rr][cc].el.textContent = '\u{1F4A3}';
-          board[rr][cc].el.classList.add('revealed');
-        }
-      }
-    }
-
-    // 3. 然后依次变成💥
-    restMines.forEach(function(mineCell, index) {
-      const t = setTimeout(function() {
-        mineCell.el.textContent = '\u{1F4A5}';
-        mineCell.el.classList.add('mine-hit');
-      }, (index + 1) * 80);
-      explodeTimers.push(t);
-    });
-
-    // 全部炸完后弹出游戏结束
-    const endDelay = restMines.length * 80 + 300;
-    const endTimer = setTimeout(function() {
-      endGame(false);
-    }, endDelay);
-    explodeTimers.push(endTimer);
     return;
   }
-
-  reveal(r, c);
-  checkWin();
-}
-
-function handleRightClick(r, c) {
-  if (gameOver) return;
-  const cell = board[r][c];
-  if (cell.revealed) return;
-
-  cell.flagged = !cell.flagged;
-  cell.el.textContent = cell.flagged ? '\u{1F6A9}' : '';
-  flags += cell.flagged ? 1 : -1;
-  updateMineCount();
-}
-
-function reveal(r, c) {
-  const cell = board[r][c];
-  if (cell.revealed || cell.flagged || cell.mine) return;
-
-  cell.revealed = true;
-  revealed++;
-  cell.el.classList.add('revealed');
-
-  if (cell.count > 0) {
-    cell.el.textContent = cell.count;
-    cell.el.classList.add('n' + cell.count);
-  } else {
-    forEachNeighbor(r, c, function(nr, nc) { reveal(nr, nc); });
+  // 二进制：视频分片
+  if (!started) beginStream();
+  if (mediaSource && mediaSource.readyState === 'open') {
+    if (sourceBuffer.updating || queue.length > 0) {
+      queue.push(e.data);
+      if (queue.length > 30) { queue.shift(); mediaSource.setTimestampOffset && 0; } // 防积压
+    } else {
+      sourceBuffer.appendBuffer(e.data);
+    }
   }
 }
 
-function checkWin() {
-  if (revealed === ROWS * COLS - MINES) {
-    endGame(true);
+function beginStream() {
+  if (started) return;
+  started = true;
+  resetMSE();
+  mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+  video.style.display = 'block';
+  placeholder.style.display = 'none';
+  mediaSource.addEventListener('sourceopen', () => {
+    try {
+      sourceBuffer = mediaSource.addSourceBuffer(mime || 'video/webm;codecs="vp8,opus"');
+      sourceBuffer.mode = 'segments';
+      sourceBuffer.addEventListener('updateend', pump);
+      sourceBuffer.addEventListener('error', (e) => console.error('SB error', e));
+    } catch (err) {
+      console.error('addSourceBuffer 失败', err);
+      setStatus('on', '浏览器不支持该编码: ' + mime);
+    }
+  });
+  setStatus('live', '正在观看直播');
+}
+
+function pump() {
+  if (!sourceBuffer || sourceBuffer.updating || queue.length === 0) return;
+  try { sourceBuffer.appendBuffer(queue.shift()); } catch (e) { console.warn(e); }
+}
+
+function resetMSE() {
+  queue = [];
+  if (mediaSource && mediaSource.readyState === 'open') {
+    try { mediaSource.endOfStream(); } catch (e) {}
   }
+  mediaSource = null;
+  sourceBuffer = null;
+  video.style.display = 'none';
+  placeholder.style.display = 'block';
 }
 
-function endGame(win) {
-  gameOver = true;
-  clearInterval(timerInterval);
-  faceBtn.textContent = win ? '\u{1F60E}' : '\u{1F480}';
-  showDialog('游戏结束！');
-}
-
-function startTimer() {
-  timerInterval = setInterval(function() {
-    timerVal++;
-    timerEl.textContent = String(timerVal).padStart(3, '0');
-    if (timerVal >= 999) clearInterval(timerInterval);
-  }, 1000);
-}
-
-function updateMineCount() {
-  const remaining = MINES - flags;
-  mineCountEl.textContent = String(Math.max(remaining, 0)).padStart(3, '0');
-}
-
-function showDialog(message) {
-  dialogText.textContent = message;
-  overlay.classList.add('show');
-  dialogRestart.focus();
-}
-
-function hideDialog() {
-  overlay.classList.remove('show');
-}
-
-dialogOk.addEventListener('click', hideDialog);
-dialogClose.addEventListener('click', hideDialog);
-dialogRestart.addEventListener('click', function() {
-  hideDialog();
-  init();
-});
-overlay.addEventListener('click', function(e) {
-  if (e.target === overlay) hideDialog();
-});
-
-faceBtn.addEventListener('click', init);
-init();
+// 低延迟：追上播放头时轻微加速
+setInterval(() => {
+  if (video.buffered.length && video.readyState >= 2) {
+    const end = video.buffered.end(video.buffered.length - 1);
+    if (end - video.currentTime > 2) video.currentTime = end - 1;
+  }
+}, 1000);
 </script>
 </body>
 </html>
